@@ -96,7 +96,7 @@
 
         var lastfft = {};
 
-        firebase.database().ref('s1').ref.on("child_added", function (snapshot, prevChildKey) {
+        firebase.database().ref('s0').ref.on("child_added", function (snapshot, prevChildKey) {
             if (signal.length == 2048) signal.shift();
             signal.push(snapshot.val().rr);
 
@@ -151,12 +151,12 @@
 						    .rangeRound([0, 360])
 						    .padding(0.1);
 
-					console.log(x(1),x(10));
-
+					/*
 					var y = d3.scaleLinear()
 						.domain([0,maxVal])
 					    .range([360,0]);
-
+					*/
+					
 					var y = d3.scaleLog()
 						.domain([1e-6,maxVal])
 					    .range([360,1e-6]);
@@ -171,9 +171,8 @@
 					for(var i=0; i<f.spectrum.length; i++){
 						var currFreq = f.getBandFrequency(i);
 						if(currFreq >= 0.15 && currFreq < 0.4) hf += f.spectrum[i];
-						if(currFreq >= 0.04 && currFreq < 0.15) hf += f.spectrum[i];
+						if(currFreq >= 0.04 && currFreq < 0.15) lf += f.spectrum[i];
 					}
-					console.log(hf,lf);
 
 					chart.append("g")
 				        .selectAll("rect")
@@ -186,15 +185,15 @@
 					    	if(currFreq >= 0.04 && currFreq < 0.15) return "#990000";
 					    })
 					    .attr("width",100/f.spectrum.length+"%")
-					    .attr("height",function(d) { console.log(y(d)); return 360 - y(d); })
+					    .attr("height",function(d) { return 360 - y(d); })
 					    .attr("x",function(d,i) { return (360/f.spectrum.length)*i; })
 					    .attr("y",function(d) { return y(d); });
 
 				    chart.append("text")
 						.attr("class", "ratio")
-						.attr("transform", "translate(170,40)")
+						.attr("transform", "translate(120,40)")
 						//.attr("y", 360/2)
-						.text("HF/LF = ") 
+						.text("HF/LF = "+(hf/lf).toFixed(2)) 
         }
         
     </script>
