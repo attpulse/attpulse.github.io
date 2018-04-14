@@ -62,12 +62,6 @@
     <div class="container" style="text-align: center">
     	<svg id="viz" width="360" height="120">
     	</svg>
-    	<h5>HRV FFT</h5>
-    </div>
-
-    <div class="container logo">
-        <img src="pulse.JPEG" width="360" height="120" />
-        <h5>Sinal cru</h5>
     </div>
 
     <div class="container logo">
@@ -102,11 +96,9 @@
 
         var lastfft = {};
 
-        firebase.database().ref('s0').ref.orderByKey().limitToLast(2048).on("value", function (snapshot) {
-        	signal = [];
-			snapshot.forEach(ss => {
-				signal.push(ss.val().rr);
-			});
+        firebase.database().ref('s0').ref.on("child_added", function (snapshot, prevChildKey) {
+            if (signal.length == 2048) signal.shift();
+            signal.push(snapshot.val().rr);
 
             if (signal.length >= 4 && signal.length % 2 == 0) {
                 var pot = closestPowerOfTwo(signal.length);
@@ -122,51 +114,86 @@
         });
 
         function drawChart(f){
-    		d3.select("#viz").html(null);
+        	/*
+            d3.select(".chart").html(null);
+            d3.select(".chart")
+                .selectAll("div")
+                    .data([].slice.call(f.spectrum))
+                .enter().append("div")
+                    .style("background-color", "#f0f")
+                    .style("height", function(d) { return d/10 + "px"; })
+                    .style("width", 100/f.spectrum.length + "%")
+                    .style("display", "inline-block")
+                    .text(function(d, i) { return f.getBandFrequency(i); });
+			//*/
 
-            var maxVal = d3.max(f.spectrum,function(d){ return d });
+            d3.select("#viz").html(null);
+                    /*
+            d3.select("#viz")
+                .selectAll("div")
+                    .data([].slice.call(f.spectrum))
+                .enter().append("div")
+                    .style("background-color", "#f0f")
+                    .style("height", function(d) { return d/10 + "px"; })
+                    .style("width", 100/f.spectrum.length + "%")
+                    .style("display", "inline-block")
+                    .text(function(d, i) { return f.getBandFrequency(i); });
 
-			var x = d3.scaleBand()
-				    .rangeRound([0, 360])
-				    .padding(0.1);
 
-			var y = d3.scaleLog()
-				.domain([1e-6,maxVal])
-			    .range([360,1e-6]);
+                    var x = d3.scaleLinear()
+						.domain([0,f.spectrum.length])
+					    .range([0,360]);
+					  
+					*/
+                    var maxVal = d3.max(f.spectrum,function(d){ return d });
 
-			var chart = d3.select("#viz");
+					var x = d3.scaleBand()
+						    .rangeRound([0, 360])
+						    .padding(0.1);
 
-			//HF 0.15 a 0.4
-			//LF 0.04 a 0.15
+					/*
+					var y = d3.scaleLinear()
+						.domain([0,maxVal])
+					    .range([360,0]);
+					*/
+					
+					var y = d3.scaleLog()
+						.domain([1e-6,maxVal])
+					    .range([360,1e-6]);
 
-			var hf = 0;
-			var lf = 0;
-			for(var i=0; i<f.spectrum.length; i++){
-				var currFreq = f.getBandFrequency(i);
-				if(currFreq >= 0.15 && currFreq < 0.4) hf += f.spectrum[i];
-				if(currFreq >= 0.04 && currFreq < 0.15) lf += f.spectrum[i];
-			}
+					var chart = d3.select("#viz");
 
-			chart.append("g")
-		        .selectAll("rect")
-				.data(f.spectrum)
-			    .enter().append("rect")
-			    //.attr("fill","#555555")
-			    .attr("fill",function(d, i){
-					var currFreq = f.getBandFrequency(i);
-			    	if(currFreq >= 0.15 && currFreq < 0.4) return "#000099";
-			    	if(currFreq >= 0.04 && currFreq < 0.15) return "#990000";
-			    })
-			    .attr("width",100/f.spectrum.length+"%")
-			    .attr("height",function(d) { return 360 - y(d); })
-			    .attr("x",function(d,i) { return (360/f.spectrum.length)*i; })
-			    .attr("y",function(d) { return y(d); });
+					//HF 0.15 a 0.4
+					//LF 0.04 a 0.15
 
-		    chart.append("text")
-				.attr("class", "ratio")
-				.attr("transform", "translate(120,40)")
-				//.attr("y", 360/2)
-				.text("HF/LF = "+(hf/lf).toFixed(2)) 
+					var hf = 0;
+					var lf = 0;
+					for(var i=0; i<f.spectrum.length; i++){
+						var currFreq = f.getBandFrequency(i);
+						if(currFreq >= 0.15 && currFreq < 0.4) hf += f.spectrum[i];
+						if(currFreq >= 0.04 && currFreq < 0.15) lf += f.spectrum[i];
+					}
+
+					chart.append("g")
+				        .selectAll("rect")
+						.data(f.spectrum)
+					    .enter().append("rect")
+					    //.attr("fill","#555555")
+					    .attr("fill",function(d, i){
+							var currFreq = f.getBandFrequency(i);
+					    	if(currFreq >= 0.15 && currFreq < 0.4) return "#000099";
+					    	if(currFreq >= 0.04 && currFreq < 0.15) return "#990000";
+					    })
+					    .attr("width",100/f.spectrum.length+"%")
+					    .attr("height",function(d) { return 360 - y(d); })
+					    .attr("x",function(d,i) { return (360/f.spectrum.length)*i; })
+					    .attr("y",function(d) { return y(d); });
+
+				    chart.append("text")
+						.attr("class", "ratio")
+						.attr("transform", "translate(120,40)")
+						//.attr("y", 360/2)
+						.text("HF/LF = "+(hf/lf).toFixed(2)) 
         }
         
     </script>
