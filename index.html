@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>AttPulse - Detecção de Atenção Baseada na Frequência Cardíaca</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="d3.v5.min.js"></script>
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+        crossorigin="anonymous">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+    <![endif]-->
+
+    <link rel="apple-touch-icon" sizes="57x57" href="favicon/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="favicon/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="favicon/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="favicon/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="favicon/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="favicon/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="favicon/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="favicon/apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="favicon/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="favicon/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
+    <link rel="manifest" href="favicon/manifest.json">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="favicon/ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
+
+    <style>
+    body {
+    padding-top: 40px;
+    padding-bottom: 40px;
+    background-color: #E0E0E0;
+    }
+    .container.logo {
+        text-align: center;
+        margin-top: 25px;
+        margin-bottom: 10px;
+    }
+    .ratio {
+    	font-weight: 600;
+    	font-size: 2em;
+    }
+  </style>
+<script language="javascript" src="dsp.js"></script>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="chart"></div>
+    </div>
+
+    <div class="container" style="text-align: center">
+    	<svg id="viz" width="360" height="120">
+    	</svg>
+    </div>
+
+    <div class="container logo">
+        <img src="attpulse.png" width="360" />
+        <h5>Detecção de Atenção Baseada na Frequência Cardíaca</h5>
+    </div>
+
+    <div class="container">
+        <div class="row">
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/4.3.0/firebase.js"></script>
+    <script>
+        // Initialize Firebase
+        var config = {
+            apiKey: "AIzaSyArfbqVOmECvg-_aOPoYuT6LMcKPWkf7Oo",
+            authDomain: "cprn-d8390.firebaseapp.com",
+            databaseURL: "https://cprn-d8390.firebaseio.com",
+            projectId: "cprn-d8390",
+            storageBucket: "cprn-d8390.appspot.com",
+            messagingSenderId: "989563944933"
+        };
+        firebase.initializeApp(config);
+    </script>
+<script>
+        function closestPowerOfTwo(v) {
+            return Math.pow(2, Math.floor(Math.log(v) / Math.log(2)));
+        }
+
+        var signal = [];
+
+        var lastfft = {};
+
+        firebase.database().ref('s1').ref.on("child_added", function (snapshot, prevChildKey) {
+            if (signal.length == 2048) signal.shift();
+            signal.push(snapshot.val().rr);
+
+            if (signal.length >= 4 && signal.length % 2 == 0) {
+                var pot = closestPowerOfTwo(signal.length);
+                var currfft = new FFT(pot, 1);
+                currfft.forward(signal.slice(signal.length - pot, signal.length + 1));
+
+                lastfft = currfft;
+
+                drawChart(currfft)
+            }
+        }, function (errorObject) {
+            console.log("The read failed: " + errorObject.code);
+        });
+
+        function drawChart(f){
+        	/*
+            d3.select(".chart").html(null);
+            d3.select(".chart")
+                .selectAll("div")
+                    .data([].slice.call(f.spectrum))
+                .enter().append("div")
+                    .style("background-color", "#f0f")
+                    .style("height", function(d) { return d/10 + "px"; })
+                    .style("width", 100/f.spectrum.length + "%")
+                    .style("display", "inline-block")
+                    .text(function(d, i) { return f.getBandFrequency(i); });
+			//*/
+
+            d3.select("#viz").html(null);
+                    /*
+            d3.select("#viz")
+                .selectAll("div")
+                    .data([].slice.call(f.spectrum))
+                .enter().append("div")
+                    .style("background-color", "#f0f")
+                    .style("height", function(d) { return d/10 + "px"; })
+                    .style("width", 100/f.spectrum.length + "%")
+                    .style("display", "inline-block")
+                    .text(function(d, i) { return f.getBandFrequency(i); });
+
+
+                    var x = d3.scaleLinear()
+						.domain([0,f.spectrum.length])
+					    .range([0,360]);
+					  
+					*/
+                    var maxVal = d3.max(f.spectrum,function(d){ return d });
+
+					var x = d3.scaleBand()
+						    .rangeRound([0, 360])
+						    .padding(0.1);
+
+					console.log(x(1),x(10));
+
+					var y = d3.scaleLinear()
+						.domain([0,maxVal])
+					    .range([360,0]);
+
+					var y = d3.scaleLog()
+						.domain([1e-6,maxVal])
+					    .range([360,1e-6]);
+
+					var chart = d3.select("#viz");
+
+					//HF 0.15 a 0.4
+					//LF 0.04 a 0.15
+
+					var hf = 0;
+					var lf = 0;
+					for(var i=0; i<f.spectrum.length; i++){
+						var currFreq = f.getBandFrequency(i);
+						if(currFreq >= 0.15 && currFreq < 0.4) hf += f.spectrum[i];
+						if(currFreq >= 0.04 && currFreq < 0.15) hf += f.spectrum[i];
+					}
+					console.log(hf,lf);
+
+					chart.append("g")
+				        .selectAll("rect")
+						.data(f.spectrum)
+					    .enter().append("rect")
+					    //.attr("fill","#555555")
+					    .attr("fill",function(d, i){
+							var currFreq = f.getBandFrequency(i);
+					    	if(currFreq >= 0.15 && currFreq < 0.4) return "#000099";
+					    	if(currFreq >= 0.04 && currFreq < 0.15) return "#990000";
+					    })
+					    .attr("width",100/f.spectrum.length+"%")
+					    .attr("height",function(d) { console.log(y(d)); return 360 - y(d); })
+					    .attr("x",function(d,i) { return (360/f.spectrum.length)*i; })
+					    .attr("y",function(d) { return y(d); });
+
+				    chart.append("text")
+						.attr("class", "ratio")
+						.attr("transform", "translate(170,40)")
+						//.attr("y", 360/2)
+						.text("HF/LF = ") 
+        }
+        
+    </script>
+</body>
+
+</html>
